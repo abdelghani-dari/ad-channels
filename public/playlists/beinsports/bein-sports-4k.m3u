@@ -1,0 +1,63 @@
+#EXTM3U url-tvg="https://iptv-org.github.io/iptv/index.m3u"
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS NEWS 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242288&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS NEWS 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985126&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS GLOBAL 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242287&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS GLOBAL 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985125&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 1 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242268&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 1 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985127&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 1 4K S3
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985136&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 2 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242267&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 2 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985128&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 2 4K S3
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985137&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 3 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242266&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 3 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985129&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 3 4K S3
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985138&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 4 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242265&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 4 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985130&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 4 4K S3
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985139&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 5 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242264&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 5 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985131&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 5 4K S3
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985140&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 6 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242263&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 6 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985132&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 6 4K S3
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985141&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 7 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242262&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 7 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985133&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 7 4K S3
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985142&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 8 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242261&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 8 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985134&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 8 4K S3
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985143&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 9 4K S1
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=242260&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 9 4K S2
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985135&extension=ts
+#EXTINF:-1 group-title="┃AR┃ BEIN SPORTS 4K",┃AR┃ BEIN SPORTS 9 4K S3
+http://main.light-ott.net:80/play/live.php?mac=A0:BB:3E:02:40:2B&stream=985144&extension=ts
