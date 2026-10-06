@@ -21,7 +21,6 @@ import {
   type PlayerEngine,
   type QualityOption,
   type StreamHandle,
-  type TimelineState,
 } from "@/lib/attachStream";
 import { captureFromVideo } from "@/lib/captureThumbnails";
 import { ChannelLogo } from "./ChannelLogo";
@@ -32,160 +31,7 @@ interface MainHeroPlayerProps {
   onThumb?: (channelId: string, dataUrl: string) => void;
 }
 
-function formatClock(seconds: number): string {
-  const total = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const rest = total % 60;
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
-  }
-  return `${minutes}:${String(rest).padStart(2, "0")}`;
-}
 
-const emptyTimeline: TimelineState = {
-  current: 0,
-  live: 1,
-  windowStart: 0,
-  bufferedStart: 0,
-  bufferedEnd: 0,
-  canSeek: false,
-  followLive: true,
-};
-
-function LiveSeekBar({ handle }: { handle: React.RefObject<StreamHandle | null> }) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const draggingRef = useRef(false);
-  const [timeline, setTimeline] = useState<TimelineState>(emptyTimeline);
-  const [hoverRatio, setHoverRatio] = useState<number | null>(null);
-
-  useEffect(() => {
-    const tick = () => {
-      if (draggingRef.current) return;
-      const next = handle.current?.getTimeline?.();
-      if (next) setTimeline(next);
-    };
-    tick();
-    const timer = window.setInterval(tick, 200);
-    return () => window.clearInterval(timer);
-  }, [handle]);
-
-  const span = Math.max(0.5, timeline.live - timeline.windowStart);
-  const ratioOf = (seconds: number) =>
-    Math.min(1, Math.max(0, (seconds - timeline.windowStart) / span));
-  const played = ratioOf(timeline.current);
-  const buffered = Math.max(played, ratioOf(timeline.bufferedEnd));
-  const behind = Math.max(0, timeline.live - timeline.current);
-  const atLive = timeline.followLive;
-
-  const secondsFromClientX = (clientX: number) => {
-    const track = trackRef.current;
-    if (!track) return timeline.current;
-    const rect = track.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / Math.max(1, rect.width)));
-    return timeline.windowStart + ratio * span;
-  };
-
-  const seekFromClientX = (clientX: number) => {
-    const seconds = secondsFromClientX(clientX);
-    handle.current?.seek?.(seconds);
-    setTimeline((prev) => ({
-      ...prev,
-      current: seconds,
-      followLive: prev.live - seconds < 1.6,
-    }));
-  };
-
-  return (
-    <div className="mb-2.5">
-      <div className="mb-1.5 flex items-center justify-between gap-2 text-[10px] font-medium tabular-nums text-zinc-300">
-        <span>{formatClock(timeline.current - timeline.windowStart)}</span>
-        <button
-          type="button"
-          onClick={() => handle.current?.goLive?.()}
-          title={atLive ? "Watching live" : "Jump to live"}
-          className="inline-flex items-center gap-1.5 rounded-full px-1.5 py-0.5 transition-colors hover:bg-white/10"
-        >
-          <span className="relative flex h-2 w-2">
-            {atLive ? (
-              <span className="absolute inset-0 animate-ping rounded-full bg-red-500 opacity-70" />
-            ) : null}
-            <span
-              className={`relative h-2 w-2 rounded-full ${atLive ? "bg-red-600" : "bg-zinc-500"}`}
-            />
-          </span>
-          <span
-            className={`text-[11px] font-bold uppercase tracking-[0.14em] ${
-              atLive ? "text-white" : "text-zinc-400"
-            }`}
-          >
-            Live
-          </span>
-          {!atLive && behind >= 1 ? (
-            <span className="text-[10px] font-medium normal-case tracking-normal text-zinc-400">
-              -{formatClock(behind)}
-            </span>
-          ) : null}
-        </button>
-        <span>{formatClock(span)}</span>
-      </div>
-      <div
-        ref={trackRef}
-        className="group relative h-2 w-full cursor-pointer touch-none rounded-[2px] bg-zinc-600/90"
-        onPointerDown={(event) => {
-          draggingRef.current = true;
-          try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* Samsung TV */ }
-          seekFromClientX(event.clientX);
-        }}
-        onPointerMove={(event) => {
-          const track = trackRef.current;
-          if (track) {
-            const rect = track.getBoundingClientRect();
-            setHoverRatio(Math.min(1, Math.max(0, (event.clientX - rect.left) / Math.max(1, rect.width))));
-          }
-          if (!draggingRef.current) return;
-          seekFromClientX(event.clientX);
-        }}
-        onPointerUp={(event) => {
-          draggingRef.current = false;
-          try {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          } catch {
-            /* ignore */
-          }
-        }}
-        onPointerLeave={() => {
-          if (!draggingRef.current) setHoverRatio(null);
-        }}
-        onPointerCancel={() => {
-          draggingRef.current = false;
-          setHoverRatio(null);
-        }}
-      >
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 rounded-[2px] bg-zinc-400/70"
-          style={{ width: `${buffered * 100}%` }}
-        />
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 rounded-[2px] bg-blue-500"
-          style={{ width: `${played * 100}%` }}
-        />
-        <div
-          className="pointer-events-none absolute top-1/2 z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_2px_rgba(0,0,0,0.35)] transition-transform group-hover:scale-110"
-          style={{ left: `${played * 100}%` }}
-        />
-        {hoverRatio !== null ? (
-          <div
-            className="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-black/85 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-white"
-            style={{ left: `${hoverRatio * 100}%` }}
-          >
-            {formatClock(hoverRatio * span)}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
 
 export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -347,33 +193,6 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
   }, [showChrome]);
 
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      const tag = (event.target as HTMLElement | null)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      const handle = streamHandleRef.current;
-      if (!handle) return;
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        const t = handle.getTimeline?.();
-        if (t) handle.seek?.(t.current - 5);
-      } else if (event.key === "ArrowRight") {
-        event.preventDefault();
-        const t = handle.getTimeline?.();
-        if (t) handle.seek?.(t.current + 5);
-      } else if (event.key === "Home") {
-        event.preventDefault();
-        const t = handle.getTimeline?.();
-        if (t) handle.seek?.(t.windowStart);
-      } else if (event.key === "End") {
-        event.preventDefault();
-        handle.goLive?.();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || typeof IntersectionObserver === "undefined") return;
     const root = sentinel.closest("main");
@@ -405,46 +224,29 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
     };
   }, [channel.id, playerEngine, onThumb]);
 
-  // Watchdog: recover from native-stream stalls (Samsung TV, no-MSE browsers).
-  // When the video fires stalled/waiting/emptied, give it 7 s then do a full reload.
+  // Watchdog: poll every 5 s; if video is stuck (readyState < 3 while not paused)
+  // for 15 consecutive seconds after first picture, trigger a full stream reload.
+  // Poll-based is safer than events — 'waiting'/'emptied' fire during normal buffering.
   useEffect(() => {
-    let stallTimer = 0;
-    const clearStall = () => {
-      if (stallTimer) { window.clearTimeout(stallTimer); stallTimer = 0; }
-    };
-    const onOk = () => clearStall();
-    const onStall = () => {
-      clearStall();
-      stallTimer = window.setTimeout(() => {
-        // Only auto-reload if still not playing after the grace period
-        const v = videoRef.current;
-        if (v && (v.paused || v.readyState < 3)) {
-          reloadStream().catch(() => {});
-        }
-      }, 7000);
-    };
+    let stuckMs = 0;
+    const POLL_MS = 5000;
+    const MAX_STUCK_MS = 15000;
 
-    const video = videoRef.current;
-    if (!video) return;
+    const timer = window.setInterval(() => {
+      const v = videoRef.current;
+      if (!v || v.paused) { stuckMs = 0; return; }
+      if (!hasPicture) { stuckMs = 0; return; } // still loading first frame
+      if (v.readyState >= 3) { stuckMs = 0; return; } // playing fine
+      stuckMs += POLL_MS;
+      if (stuckMs >= MAX_STUCK_MS) {
+        stuckMs = 0;
+        reloadStream().catch(() => {});
+      }
+    }, POLL_MS);
 
-    video.addEventListener("playing",    onOk);
-    video.addEventListener("timeupdate", onOk);
-    video.addEventListener("stalled",    onStall);
-    video.addEventListener("waiting",    onStall);
-    video.addEventListener("emptied",    onStall);
-    video.addEventListener("error",      onStall);
-
-    return () => {
-      clearStall();
-      video.removeEventListener("playing",    onOk);
-      video.removeEventListener("timeupdate", onOk);
-      video.removeEventListener("stalled",    onStall);
-      video.removeEventListener("waiting",    onStall);
-      video.removeEventListener("emptied",    onStall);
-      video.removeEventListener("error",      onStall);
-    };
+    return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channel, playerEngine]);
+  }, [channel, playerEngine, hasPicture]);
 
   const enableSound = () => {
     const handle = streamHandleRef.current;
@@ -649,7 +451,6 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
             showChrome ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         >
-          <LiveSeekBar key={channel.id} handle={streamHandleRef} />
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <button
