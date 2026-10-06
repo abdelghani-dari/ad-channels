@@ -10,14 +10,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/",
-        headers: isolationHeaders,
-      },
-      {
-        source: "/:path*",
-        headers: isolationHeaders,
-      },
-      {
+        // Keep strict isolation ONLY for WASM/ferrite assets that need SharedArrayBuffer
         source: "/ferrite/:path*",
         headers: [
           ...isolationHeaders,

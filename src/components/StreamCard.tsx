@@ -99,7 +99,9 @@ export function StreamCard({
     event.stopPropagation();
     try {
       const url = await resolveStreamUrl(channel);
-      await navigator.clipboard.writeText(url);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      }
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {

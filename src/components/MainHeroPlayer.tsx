@@ -135,7 +135,7 @@ function LiveSeekBar({ handle }: { handle: React.RefObject<StreamHandle | null> 
         className="group relative h-2 w-full cursor-pointer touch-none rounded-[2px] bg-zinc-600/90"
         onPointerDown={(event) => {
           draggingRef.current = true;
-          event.currentTarget.setPointerCapture(event.pointerId);
+          try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* Samsung TV */ }
           seekFromClientX(event.clientX);
         }}
         onPointerMove={(event) => {
@@ -376,7 +376,7 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    if (!sentinel || typeof IntersectionObserver === "undefined") return;
     const root = sentinel.closest("main");
     const observer = new IntersectionObserver(
       ([entry]) => setIsMini(!entry.isIntersecting),
@@ -427,10 +427,14 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
 
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
+    try {
+      if (!document.fullscreenElement) {
+        containerRef.current.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch {
+      /* fullscreen not supported (e.g. Samsung TV browser) */
     }
   };
 
@@ -475,7 +479,7 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
         await video.requestPictureInPicture();
       }
     } catch {
-      /* ignore */
+      /* ignore — not supported on this browser */
     }
   };
 
