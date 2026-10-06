@@ -649,10 +649,12 @@ export async function attachStream(
             : [preferred, bestEngineForUrl(url)];
 
   let destroyed = false;
-  let hls: HlsSession | null = null;
-  let mpeg: MpegPlayer | null = null;
-  let wasm: WasmPlayer | null = null;
-  let extraDestroy: (() => void) | null = null;
+  const state: {
+    hls: HlsSession | null;
+    mpeg: MpegPlayer | null;
+    wasm: WasmPlayer | null;
+    extraDestroy: (() => void) | null;
+  } = { hls: null, mpeg: null, wasm: null, extraDestroy: null };
   let used: PlayerEngine = preferred;
 
   const dropCanvas = () => {
@@ -664,35 +666,35 @@ export async function attachStream(
   const destroyAll = () => {
     destroyed = true;
     try {
-      extraDestroy?.();
+      state.extraDestroy?.();
     } catch {
       /* ignore */
     }
-    extraDestroy = null;
+    state.extraDestroy = null;
     try {
-      wasm?.pause();
-      wasm?.unload();
-      wasm?.detachMediaElement();
-      wasm?.destroy();
+      state.wasm?.pause();
+      state.wasm?.unload();
+      state.wasm?.detachMediaElement();
+      state.wasm?.destroy();
     } catch {
       /* ignore */
     }
-    wasm = null;
+    state.wasm = null;
     try {
-      mpeg?.pause();
-      mpeg?.unload();
-      mpeg?.detachMediaElement();
-      mpeg?.destroy();
+      state.mpeg?.pause();
+      state.mpeg?.unload();
+      state.mpeg?.detachMediaElement();
+      state.mpeg?.destroy();
     } catch {
       /* ignore */
     }
-    mpeg = null;
+    state.mpeg = null;
     try {
-      hls?.destroy();
+      state.hls?.destroy();
     } catch {
       /* ignore */
     }
-    hls = null;
+    state.hls = null;
     dropCanvas();
     try {
       video.pause();
@@ -705,36 +707,36 @@ export async function attachStream(
   const tryEngine = async (engine: PlayerEngine) => {
     if (engine === "wasm") {
       if (!isMpegTsUrl(url)) return false;
-      wasm = await attachWasmHevc(video, playUrl, options.container, options.onPlaying, options.lowQuality);
+      state.wasm = await attachWasmHevc(video, playUrl, options.container, options.onPlaying, options.lowQuality);
       used = "wasm";
-      return Boolean(wasm);
+      return Boolean(state.wasm);
     }
     if (engine === "hls" || engine === "vidstack" || engine === "dash" || engine === "plyr" || engine === "videojs" || engine === "artplayer") {
       if (url.includes(".m3u8")) {
-        hls = await attachHls(video, url, options.lowQuality, options.onQualities);
+        state.hls = await attachHls(video, url, options.lowQuality, options.onQualities);
         used = "hls";
         return true;
       }
       if (isMpegTsUrl(url) && hevcWasm) {
-        wasm = await attachWasmHevc(video, playUrl, options.container, options.onPlaying, options.lowQuality);
+        state.wasm = await attachWasmHevc(video, playUrl, options.container, options.onPlaying, options.lowQuality);
         used = "wasm";
-        return Boolean(wasm);
+        return Boolean(state.wasm);
       }
       if (isMpegTsUrl(url)) {
-        mpeg = await attachMpegts(video, playUrl, "mpegts", !options.lowQuality);
+        state.mpeg = await attachMpegts(video, playUrl, "mpegts", !options.lowQuality);
         used = "mpegts";
-        return Boolean(mpeg);
+        return Boolean(state.mpeg);
       }
     }
     if (engine === "mpegts" || engine === "mse") {
       if (hevcWasm) {
-        wasm = await attachWasmHevc(video, playUrl, options.container, options.onPlaying, options.lowQuality);
+        state.wasm = await attachWasmHevc(video, playUrl, options.container, options.onPlaying, options.lowQuality);
         used = "wasm";
-        return Boolean(wasm);
+        return Boolean(state.wasm);
       }
-      mpeg = await attachMpegts(video, playUrl, engine === "mse" ? "mse" : "mpegts", !options.lowQuality);
+      state.mpeg = await attachMpegts(video, playUrl, engine === "mse" ? "mse" : "mpegts", !options.lowQuality);
       used = engine;
-      return Boolean(mpeg);
+      return Boolean(state.mpeg);
     }
     if (engine === "native") {
       video.src = url.includes(".m3u8") ? url : playUrl;
@@ -757,7 +759,7 @@ export async function attachStream(
       }
     }
     if (!attached && url.includes(".m3u8")) {
-      hls = await attachHls(video, url, options.lowQuality, options.onQualities);
+      state.hls = await attachHls(video, url, options.lowQuality, options.onQualities);
       used = "hls";
     }
   } catch {
@@ -795,12 +797,12 @@ export async function attachStream(
     } catch {
       /* ignore */
     }
-    const cfg = mpegtsConfigOf(mpeg);
+    const cfg = mpegtsConfigOf(state.mpeg);
     if (cfg) {
       cfg.liveSync = on;
       cfg.liveBufferLatencyChasing = on;
     }
-    hls?.setFollowLive(on);
+    state.hls?.setFollowLive(on);
   };
 
   const readTimeline = (): TimelineState => {
@@ -809,9 +811,9 @@ export async function attachStream(
     let bufferedStart = 0;
     let bufferedEnd = 0;
 
-    if (wasm) {
-      current = Number(wasm.currentTime) || elapsed;
-      bufferedEnd = Math.max(current, Number(wasm.duration) || elapsed);
+    if (state.wasm) {
+      current = Number(state.wasm.currentTime) || elapsed;
+      bufferedEnd = Math.max(current, Number(state.wasm.duration) || elapsed);
       bufferedStart = Math.max(0, bufferedEnd - LIVE_WINDOW_SEC);
     } else {
       current = Number.isFinite(video.currentTime) ? video.currentTime : elapsed;
@@ -835,12 +837,12 @@ export async function attachStream(
 
   const seekMedia = (target: number) => {
     try {
-      if (wasm?.seek) {
-        wasm.seek(target);
+      if (state.wasm?.seek) {
+        state.wasm.seek(target);
         return;
       }
-      if (mpeg?.seek) {
-        mpeg.seek(target);
+      if (state.mpeg?.seek) {
+        state.mpeg.seek(target);
         return;
       }
       video.currentTime = target;
@@ -865,18 +867,18 @@ export async function attachStream(
   const recoverLive = () => {
     if (destroyed || options.lowQuality || !followLive) return;
     try {
-      if (wasm) {
-        wasm.recover?.();
-        wasm.play().catch(() => {});
+      if (state.wasm) {
+        state.wasm.recover?.();
+        state.wasm.play().catch(() => {});
         return;
       }
-      if (mpeg) {
-        mpeg.unload();
-        mpeg.load();
+      if (state.mpeg) {
+        state.mpeg.unload();
+        state.mpeg.load();
         video.play().catch(() => {});
         return;
       }
-      hls?.recover();
+      state.hls?.recover();
       video.play().catch(() => {});
     } catch {
       /* ignore */
@@ -891,11 +893,11 @@ export async function attachStream(
     };
     video.addEventListener("timeupdate", beat);
     video.addEventListener("playing", beat);
-    wasm?.on("ferrite_time_update", beat);
-    wasm?.on("statistics_info", beat);
+    state.wasm?.on("ferrite_time_update", beat);
+    state.wasm?.on("statistics_info", beat);
     const stallTimer = window.setInterval(() => {
       if (destroyed || cooling || !followLive) return;
-      if (wasm?.paused || (!wasm && video.paused)) return;
+      if (state.wasm?.paused || (!state.wasm && video.paused)) return;
       const timeline = readTimeline();
       if (timeline.live - timeline.current > 3) return;
       if (Date.now() - lastBeat < 18000) return;
@@ -906,8 +908,8 @@ export async function attachStream(
         cooling = false;
       }, 5000);
     }, 2500);
-    const prevDestroy = extraDestroy;
-    extraDestroy = () => {
+    const prevDestroy = state.extraDestroy;
+    state.extraDestroy = () => {
       prevDestroy?.();
       window.clearInterval(stallTimer);
       video.removeEventListener("timeupdate", beat);
@@ -919,22 +921,22 @@ export async function attachStream(
     destroy: destroyAll,
     engine: used,
     usesCanvas: used === "wasm",
-    play: () => (wasm ? wasm.play() : video.play().then(() => undefined).catch(() => undefined)),
+    play: () => (state.wasm ? state.wasm.play() : video.play().then(() => undefined).catch(() => undefined)),
     pause: () => {
-      if (wasm) wasm.pause();
+      if (state.wasm) state.wasm.pause();
       else video.pause();
     },
     setVolume: (value: number) => {
-      if (wasm) wasm.volume = value;
+      if (state.wasm) state.wasm.volume = value;
       else video.volume = value;
     },
     setMuted: (muted: boolean) => {
-      if (wasm) wasm.muted = muted;
+      if (state.wasm) state.wasm.muted = muted;
       else video.muted = muted;
     },
-    grabFrame: () => (wasm?.grabFrame ? wasm.grabFrame() : Promise.resolve(null)),
-    getQualities: () => hls?.getQualities() || [{ id: -1, label: "Auto" }],
-    setQuality: (id: number) => hls?.setQuality(id),
+    grabFrame: () => (state.wasm?.grabFrame ? state.wasm.grabFrame() : Promise.resolve(null)),
+    getQualities: () => state.hls?.getQualities() || [{ id: -1, label: "Auto" }],
+    setQuality: (id: number) => state.hls?.setQuality(id),
     getTimeline: readTimeline,
     seek: seekTo,
     goLive,
