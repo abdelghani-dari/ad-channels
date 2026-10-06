@@ -9,7 +9,6 @@ import {
   Maximize2,
   Minimize2,
   RefreshCw,
-  Tv,
   MonitorPlay,
   PictureInPicture2,
   Settings2,
@@ -619,15 +618,7 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
                 {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                 {isPlaying ? "Pause" : "Play"}
               </button>
-              {onOpenMultiview && (
-                <button
-                  onClick={onOpenMultiview}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-600 bg-zinc-900/80 px-3 py-1.5 text-xs font-medium text-zinc-100"
-                >
-                  <Tv className="h-3.5 w-3.5" />
-                  Multiview
-                </button>
-              )}
+
             </div>
 
             <div className="flex items-center gap-1.5">
