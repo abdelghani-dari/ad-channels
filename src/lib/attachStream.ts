@@ -61,6 +61,23 @@ function wasmHevcReady(): boolean {
   return typeof window !== "undefined" && Boolean(window.crossOriginIsolated) && typeof SharedArrayBuffer !== "undefined";
 }
 
+/**
+ * Returns true on browsers that have no Media Source Extensions support
+ * (Samsung Tizen TV browser, older Safari, basic WebView players).
+ * These can ONLY play via native <video src="..."> — HLS.js / mpegts.js will not work.
+ */
+function needsNativeOnly(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return (
+      typeof window.MediaSource === "undefined" &&
+      typeof (window as unknown as { WebKitMediaSource?: unknown }).WebKitMediaSource === "undefined"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function chromeNeedsHevcWasm(): boolean {
   return wasmHevcReady() && !mseSupportsHevc();
 }
@@ -171,6 +188,8 @@ function rangeSpan(ranges: TimeRanges | undefined): { start: number; end: number
 }
 
 export function bestEngineForUrl(url: string): Exclude<PlayerEngine, "auto"> {
+  // On Samsung TV / browsers without MSE, only native <video> works
+  if (needsNativeOnly()) return "native";
   if (url.includes(".m3u8")) return "hls";
   if (isMpegTsUrl(url)) return wasmHevcReady() && !mseSupportsHevc() ? "wasm" : "mpegts";
   return "native";
@@ -636,17 +655,19 @@ export async function attachStream(
         ? "wasm"
         : bestEngineForUrl(url);
   const fallbacks: PlayerEngine[] =
-    preferred === "hls"
-      ? ["hls", "native"]
-      : preferred === "wasm"
-        ? ["wasm"]
-        : preferred === "mpegts" || preferred === "mse"
-          ? hevcWasm
-            ? ["wasm"]
-            : ["mpegts", "mse"]
-          : preferred === "native"
-            ? ["native", "hls"]
-            : [preferred, bestEngineForUrl(url)];
+    needsNativeOnly()
+      ? ["native"] // Samsung TV / no MSE — only native playback works
+      : preferred === "hls"
+        ? ["hls", "native"]
+        : preferred === "wasm"
+          ? ["wasm"]
+          : preferred === "mpegts" || preferred === "mse"
+            ? hevcWasm
+              ? ["wasm"]
+              : ["mpegts", "mse"]
+            : preferred === "native"
+              ? ["native", "hls"]
+              : [preferred, bestEngineForUrl(url)];
 
   let destroyed = false;
   const state: {
@@ -878,7 +899,15 @@ export async function attachStream(
         video.play().catch(() => {});
         return;
       }
-      state.hls?.recover();
+      if (state.hls) {
+        state.hls.recover();
+        video.play().catch(() => {});
+        return;
+      }
+      // Native engine (Samsung TV / no MSE) — must reload the src to escape a stall
+      const nativeSrc = url.includes(".m3u8") ? url : playUrl;
+      video.src = nativeSrc;
+      video.load();
       video.play().catch(() => {});
     } catch {
       /* ignore */
@@ -900,7 +929,7 @@ export async function attachStream(
       if (state.wasm?.paused || (!state.wasm && video.paused)) return;
       const timeline = readTimeline();
       if (timeline.live - timeline.current > 3) return;
-      if (Date.now() - lastBeat < 18000) return;
+      if (Date.now() - lastBeat < 8000) return; // 8 s — fast enough to avoid visible black screen
       cooling = true;
       recoverLive();
       lastBeat = Date.now();

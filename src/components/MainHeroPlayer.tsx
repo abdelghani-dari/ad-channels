@@ -405,6 +405,47 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
     };
   }, [channel.id, playerEngine, onThumb]);
 
+  // Watchdog: recover from native-stream stalls (Samsung TV, no-MSE browsers).
+  // When the video fires stalled/waiting/emptied, give it 7 s then do a full reload.
+  useEffect(() => {
+    let stallTimer = 0;
+    const clearStall = () => {
+      if (stallTimer) { window.clearTimeout(stallTimer); stallTimer = 0; }
+    };
+    const onOk = () => clearStall();
+    const onStall = () => {
+      clearStall();
+      stallTimer = window.setTimeout(() => {
+        // Only auto-reload if still not playing after the grace period
+        const v = videoRef.current;
+        if (v && (v.paused || v.readyState < 3)) {
+          reloadStream().catch(() => {});
+        }
+      }, 7000);
+    };
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.addEventListener("playing",    onOk);
+    video.addEventListener("timeupdate", onOk);
+    video.addEventListener("stalled",    onStall);
+    video.addEventListener("waiting",    onStall);
+    video.addEventListener("emptied",    onStall);
+    video.addEventListener("error",      onStall);
+
+    return () => {
+      clearStall();
+      video.removeEventListener("playing",    onOk);
+      video.removeEventListener("timeupdate", onOk);
+      video.removeEventListener("stalled",    onStall);
+      video.removeEventListener("waiting",    onStall);
+      video.removeEventListener("emptied",    onStall);
+      video.removeEventListener("error",      onStall);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channel, playerEngine]);
+
   const enableSound = () => {
     const handle = streamHandleRef.current;
     if (handle?.usesCanvas) {
