@@ -209,7 +209,6 @@ export function HomeClient() {
       <Navbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onOpenMultiview={() => setIsMultiviewOpen(true)}
       />
 
       <div className="flex flex-1">

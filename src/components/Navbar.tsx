@@ -1,15 +1,14 @@
 "use client";
 
 import React from "react";
-import { Search, Tv } from "lucide-react";
+import { Search } from "lucide-react";
 
 interface NavbarProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
-  onOpenMultiview?: () => void;
 }
 
-export function Navbar({ searchQuery, onSearchChange, onOpenMultiview }: NavbarProps) {
+export function Navbar({ searchQuery, onSearchChange }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-zinc-800 bg-black">
       <div className="flex h-14 items-center justify-between gap-4 px-4 md:px-6">
@@ -19,7 +18,7 @@ export function Navbar({ searchQuery, onSearchChange, onOpenMultiview }: NavbarP
             alt=""
             className="h-9 w-9 shrink-0 rounded-md object-contain"
           />
-          <div className="flex min-w-0 items-baseline gap-1.5 text-[15px] font-bold tracking-tight">
+          <div className="flex min-w-0 items-baseline gap-1.5 text-[18px] font-bold tracking-tight">
             <span className="text-white">Abdelghani</span>
             <span className="text-[#1F9D4A]">DARI</span>
           </div>
@@ -35,14 +34,6 @@ export function Navbar({ searchQuery, onSearchChange, onOpenMultiview }: NavbarP
             className="h-9 w-full rounded-full border border-zinc-800 bg-zinc-900/80 pl-9 pr-3 text-sm text-white outline-none placeholder:text-zinc-500 transition focus:border-zinc-600 focus:bg-zinc-900"
           />
         </div>
-
-        <button
-          onClick={onOpenMultiview}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-100 transition hover:bg-zinc-800"
-        >
-          <Tv className="h-3.5 w-3.5" />
-          Multiview
-        </button>
       </div>
     </header>
   );
