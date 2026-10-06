@@ -25,6 +25,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${robotoFlex.variable} dark antialiased`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(/Tizen|SMART-TV|SmartTV|Maple|Web0S|webOS|NetCast|HbbTV|VIDAA|BRAVIA/i.test(navigator.userAgent))document.documentElement.classList.add("tv-browser")}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="flex min-h-screen flex-col bg-black font-sans text-zinc-100 selection:bg-emerald-700 selection:text-white">
         {children}
       </body>

@@ -7,6 +7,7 @@ import { ChannelLogo } from "./ChannelLogo";
 import { StreamThumb } from "./StreamThumb";
 import { resolveStreamUrl } from "@/lib/streamResolver";
 import { attachStream, type StreamHandle } from "@/lib/attachStream";
+import { isSmartTvBrowser } from "@/lib/tvBrowser";
 
 interface StreamCardProps {
   channel: Channel;
@@ -40,7 +41,8 @@ export function StreamCard({
   const [previewReady, setPreviewReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const keepLive = (hovering || soundOn) && channel.type === "Static" && channel.streamUrl.includes(".m3u8");
+  const keepLive =
+    !isSmartTvBrowser() && (hovering || soundOn) && channel.type === "Static" && channel.streamUrl.includes(".m3u8");
 
   useEffect(() => {
     const video = videoRef.current;

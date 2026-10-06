@@ -1,6 +1,7 @@
 import { Channel } from "@/data/channels";
 import { resolveStreamUrl } from "@/lib/streamResolver";
 import { attachStream, chromeNeedsHevcWasm, isMpegTsUrl, type StreamHandle } from "@/lib/attachStream";
+import { isSmartTvBrowser } from "@/lib/tvBrowser";
 
 const HLS_THUMB_CONCURRENCY = 1;
 const MPEGTS_THUMB_CONCURRENCY = 1;
@@ -151,6 +152,9 @@ export async function captureOne(
   signal: AbortSignal,
   force = false
 ): Promise<CaptureResult> {
+  if (isSmartTvBrowser()) {
+    return cachedSuccess(channel.id) || { frame: null, hasVideo: false, hasAudio: false };
+  }
   if (!force) {
     const cached = cachedSuccess(channel.id);
     if (cached) return cached;
@@ -320,6 +324,10 @@ export async function runThumbQueue(
   signal: AbortSignal,
   options: { skipId?: string; getSkipId?: () => string | undefined; force?: boolean } = {}
 ): Promise<void> {
+  if (isSmartTvBrowser()) {
+    handlers.onDone?.();
+    return;
+  }
   try {
     const skipOf = () => options.getSkipId?.() ?? options.skipId;
     const playing = channels.find((channel) => channel.id === skipOf());

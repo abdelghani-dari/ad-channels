@@ -33,6 +33,18 @@
   }
 }
 
+html.tv-browser video,
+html.tv-browser canvas[data-hevc-player] {
+  filter: none !important;
+  transform: none !important;
+}
+
+html.tv-browser .tv-player-stage {
+  overflow: visible !important;
+  border-radius: 0 !important;
+  transform: none !important;
+}
+
 /* Custom Sleek Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

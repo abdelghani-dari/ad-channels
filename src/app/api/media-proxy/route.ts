@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
       headers: {
         "User-Agent": "VLC/3.0.20 LibVLC/3.0.20",
         Accept: "*/*",
+        ...(request.headers.get("range") ? { Range: request.headers.get("range") as string } : {}),
       },
       cache: "no-store",
     });
@@ -37,12 +38,15 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: "Upstream failed" }, { status: upstream.status || 502 });
     }
 
+    const type = upstream.headers.get("Content-Type") || "video/mp2t";
     return new Response(upstream.body, {
-      status: 200,
+      status: upstream.status === 206 ? 206 : 200,
       headers: {
-        "Content-Type": upstream.headers.get("Content-Type") || "video/mp2t",
-        "Cache-Control": "no-store",
+        "Content-Type": type.includes("mpegurl") ? type : "video/mp2t",
+        "Cache-Control": "no-store, no-transform",
         "Access-Control-Allow-Origin": "*",
+        "Accept-Ranges": "bytes",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch {

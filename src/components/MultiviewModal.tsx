@@ -6,6 +6,7 @@ import { Channel } from "@/data/channels";
 import { ChannelLogo } from "./ChannelLogo";
 import { resolveStreamUrl } from "@/lib/streamResolver";
 import { attachStream, type StreamHandle } from "@/lib/attachStream";
+import { prepareTvVideo } from "@/lib/tvBrowser";
 
 interface MultiviewModalProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ function MiniPlayer({ channel }: { channel: Channel }) {
         const video = videoRef.current;
         if (isCancelled || !video) return;
         video.muted = true;
-        video.playsInline = true;
+        prepareTvVideo(video);
         handleRef.current = await attachStream(video, streamUrl, { lowQuality: true, muted: true });
       } catch {
         /* ignore */
@@ -43,7 +44,7 @@ function MiniPlayer({ channel }: { channel: Channel }) {
   }, [channel]);
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-zinc-800 bg-black">
+    <div className="tv-player-stage group relative overflow-hidden rounded-xl border border-zinc-800 bg-black">
       <video ref={videoRef} playsInline muted className="aspect-video w-full object-cover" />
       <div className="absolute left-2 top-2 flex items-center gap-2 rounded-md bg-black/70 px-2 py-1">
         <ChannelLogo channel={channel} size="sm" />

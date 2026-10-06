@@ -11,6 +11,7 @@ import { RecommendedStreamers } from "@/components/RecommendedStreamers";
 import { MultiviewModal } from "@/components/MultiviewModal";
 import { captureOneWithRetry, runThumbQueue, type CaptureResult } from "@/lib/captureThumbnails";
 import { loadBeinChannels, fetchBeinPlaylistRaw } from "@/lib/parseM3u";
+import { isSmartTvBrowser } from "@/lib/tvBrowser";
 
 export function HomeClient() {
   const [playlist, setPlaylist] = useState<"maroc" | "bein">("maroc");
@@ -63,7 +64,7 @@ export function HomeClient() {
   };
 
   const refreshAllLikeClicks = (list: Channel[]) => {
-    if (list.length === 0) return;
+    if (list.length === 0 || isSmartTvBrowser()) return;
     queueAbortRef.current?.abort();
     const controller = new AbortController();
     queueAbortRef.current = controller;
@@ -84,6 +85,10 @@ export function HomeClient() {
       { force: true, getSkipId: () => activeIdRef.current }
     );
   };
+
+  useEffect(() => {
+    isSmartTvBrowser();
+  }, []);
 
   useEffect(() => {
     loadBeinChannels().then(setBeinChannels).catch(() => setBeinChannels([]));

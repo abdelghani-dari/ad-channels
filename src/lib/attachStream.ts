@@ -39,6 +39,8 @@ export type StreamHandle = {
   goLive?: () => void;
 };
 
+import { isSmartTvBrowser, nativeHlsSupported, prepareTvVideo } from "@/lib/tvBrowser";
+
 const WASM_BASE = "/ferrite/";
 
 function mseSupportsHevc(): boolean {
@@ -58,27 +60,12 @@ function mseSupportsHevc(): boolean {
 }
 
 function wasmHevcReady(): boolean {
-  return typeof window !== "undefined" && Boolean(window.crossOriginIsolated) && typeof SharedArrayBuffer !== "undefined";
-}
-
-/**
- * Returns true on browsers that have no Media Source Extensions support
- * (Samsung Tizen TV browser, older Safari, basic WebView players).
- * These can ONLY play via native <video src="..."> — HLS.js / mpegts.js will not work.
- */
-function needsNativeOnly(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return (
-      typeof window.MediaSource === "undefined" &&
-      typeof (window as unknown as { WebKitMediaSource?: unknown }).WebKitMediaSource === "undefined"
-    );
-  } catch {
-    return false;
-  }
+  if (typeof window === "undefined" || isSmartTvBrowser()) return false;
+  return Boolean(window.crossOriginIsolated) && typeof SharedArrayBuffer !== "undefined";
 }
 
 export function chromeNeedsHevcWasm(): boolean {
+  if (isSmartTvBrowser()) return false;
   return wasmHevcReady() && !mseSupportsHevc();
 }
 
@@ -188,9 +175,8 @@ function rangeSpan(ranges: TimeRanges | undefined): { start: number; end: number
 }
 
 export function bestEngineForUrl(url: string): Exclude<PlayerEngine, "auto"> {
-  // On Samsung TV / browsers without MSE, only native <video> works
-  if (needsNativeOnly()) return "native";
-  if (url.includes(".m3u8")) return "hls";
+  if (isSmartTvBrowser()) return "native";
+  if (url.includes(".m3u8")) return nativeHlsSupported() ? "native" : "hls";
   if (isMpegTsUrl(url)) return wasmHevcReady() && !mseSupportsHevc() ? "wasm" : "mpegts";
   return "native";
 }
@@ -215,6 +201,71 @@ function proxiedUrl(url: string): string {
   if (typeof window === "undefined") return url;
   if (!isMpegTsUrl(url)) return url;
   return `/api/media-proxy?url=${encodeURIComponent(url)}`;
+}
+
+function nativeMime(url: string): string {
+  if (url.includes(".m3u8")) return "application/x-mpegURL";
+  if (isMpegTsUrl(url)) return "video/mp2t";
+  return "";
+}
+
+function clearMedia(video: HTMLVideoElement) {
+  try {
+    video.pause();
+  } catch {
+    /* ignore */
+  }
+  video.querySelectorAll("source").forEach((node) => node.remove());
+  try {
+    video.removeAttribute("src");
+    video.src = "";
+  } catch {
+    /* ignore */
+  }
+}
+
+function waitForMedia(video: HTMLVideoElement, ms: number): Promise<boolean> {
+  if (video.videoWidth > 2 && video.readyState >= 2) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (ok: boolean) => {
+      if (done) return;
+      done = true;
+      video.removeEventListener("playing", onPlay);
+      video.removeEventListener("loadeddata", onPlay);
+      video.removeEventListener("error", onErr);
+      window.clearTimeout(timer);
+      resolve(ok);
+    };
+    const onPlay = () => finish(true);
+    const onErr = () => finish(false);
+    const timer = window.setTimeout(() => {
+      finish(video.readyState >= 2 || !video.paused || video.currentTime > 0);
+    }, ms);
+    video.addEventListener("playing", onPlay);
+    video.addEventListener("loadeddata", onPlay);
+    video.addEventListener("error", onErr);
+  });
+}
+
+async function attachNative(video: HTMLVideoElement, src: string, mime: string): Promise<boolean> {
+  prepareTvVideo(video);
+  clearMedia(video);
+  if (mime) {
+    const source = document.createElement("source");
+    source.src = src;
+    source.type = mime;
+    video.appendChild(source);
+  } else {
+    video.src = src;
+  }
+  try {
+    video.load();
+  } catch {
+    /* Tizen needs load(); desktop mpegts path avoids it */
+  }
+  video.play().catch(() => {});
+  return waitForMedia(video, isSmartTvBrowser() ? 8000 : 2500);
 }
 
 function emptyHandle(engine: PlayerEngine, destroy: () => void = () => {}): StreamHandle {
@@ -305,10 +356,20 @@ async function attachMpegts(
   } catch {
     /* ignore */
   }
+  const tv = isSmartTvBrowser();
   const player = mpegts.createPlayer(
     { type, isLive: true, url: playUrl, hasAudio: true, hasVideo: true },
-    stable
+    tv || !stable
       ? {
+          enableWorker: false,
+          enableStashBuffer: true,
+          stashInitialSize: 192 * 1024,
+          lazyLoad: false,
+          deferLoadAfterSourceOpen: false,
+          liveBufferLatencyChasing: false,
+          liveSync: false,
+        }
+      : {
           enableWorker: false,
           enableStashBuffer: true,
           stashInitialSize: 384 * 1024,
@@ -325,13 +386,6 @@ async function attachMpegts(
           liveSyncMaxLatency: 8,
           liveSyncTargetLatency: 4,
           liveSyncPlaybackRate: 1.04,
-        }
-      : {
-          enableWorker: false,
-          enableStashBuffer: true,
-          stashInitialSize: 192 * 1024,
-          lazyLoad: true,
-          deferLoadAfterSourceOpen: false,
         }
   );
   player.on(mpegts.Events.ERROR, () => {});
@@ -444,7 +498,7 @@ async function attachWasmHevc(
   onPlaying?: () => void,
   preview = false
 ): Promise<WasmPlayer | null> {
-  if (!wasmHevcReady()) return null;
+  if (isSmartTvBrowser() || !wasmHevcReady()) return null;
   const Ferrite = await loadFerrite();
   if (!Ferrite?.isSupported()) return null;
   const canvas = mountHevcCanvas(video, container);
@@ -521,6 +575,7 @@ async function attachHls(
   onQualities?: (qualities: QualityOption[]) => void
 ): Promise<HlsSession | null> {
   const { default: Hls } = await import("hls.js");
+  const tv = isSmartTvBrowser();
   if (!Hls.isSupported()) {
     video.src = url;
     video.play().catch(() => {});
@@ -528,16 +583,16 @@ async function attachHls(
   }
 
   const instance = new Hls({
-    enableWorker: true,
+    enableWorker: !tv,
     autoStartLoad: true,
-    capLevelToPlayerSize: false,
-    startLevel: lowQuality ? 0 : -1,
-    maxBufferLength: lowQuality ? 4 : 30,
-    maxMaxBufferLength: lowQuality ? 8 : 60,
-    backBufferLength: lowQuality ? 4 : 3600,
-    liveSyncDuration: lowQuality ? 3 : 4,
-    liveMaxLatencyDuration: lowQuality ? 8 : Infinity,
-    maxLiveSyncPlaybackRate: lowQuality ? 1 : 1.04,
+    capLevelToPlayerSize: tv,
+    startLevel: lowQuality || tv ? 0 : -1,
+    maxBufferLength: lowQuality || tv ? 4 : 30,
+    maxMaxBufferLength: lowQuality || tv ? 8 : 60,
+    backBufferLength: lowQuality || tv ? 4 : 3600,
+    liveSyncDuration: lowQuality || tv ? 3 : 4,
+    liveMaxLatencyDuration: lowQuality ? 8 : tv ? 12 : Infinity,
+    maxLiveSyncPlaybackRate: lowQuality || tv ? 1 : 1.04,
     manifestLoadingMaxRetry: 6,
     levelLoadingMaxRetry: 6,
     fragLoadingMaxRetry: 8,
@@ -630,7 +685,8 @@ export async function attachStream(
     return emptyHandle("auto");
   }
 
-  video.playsInline = true;
+  const tv = isSmartTvBrowser();
+  prepareTvVideo(video);
   if (options.muted) {
     video.muted = true;
     video.defaultMuted = true;
@@ -638,7 +694,7 @@ export async function attachStream(
 
   const playUrl = proxiedUrl(url);
   let hevcWasm = false;
-  if (isMpegTsUrl(url) && chromeNeedsHevcWasm()) {
+  if (!tv && isMpegTsUrl(url) && chromeNeedsHevcWasm()) {
     if (options.engine === "wasm") hevcWasm = true;
     else if (options.engine === "mpegts" || options.engine === "mse") hevcWasm = false;
     else {
@@ -647,27 +703,30 @@ export async function attachStream(
     }
   }
   const preferred =
-    options.engine && options.engine !== "auto"
-      ? hevcWasm && (options.engine === "mpegts" || options.engine === "mse")
-        ? "wasm"
-        : options.engine
-      : hevcWasm
-        ? "wasm"
-        : bestEngineForUrl(url);
-  const fallbacks: PlayerEngine[] =
-    needsNativeOnly()
-      ? ["native"] // Samsung TV / no MSE — only native playback works
-      : preferred === "hls"
-        ? ["hls", "native"]
-        : preferred === "wasm"
-          ? ["wasm"]
-          : preferred === "mpegts" || preferred === "mse"
-            ? hevcWasm
-              ? ["wasm"]
-              : ["mpegts", "mse"]
-            : preferred === "native"
-              ? ["native", "hls"]
-              : [preferred, bestEngineForUrl(url)];
+    tv
+      ? "native"
+      : options.engine && options.engine !== "auto"
+        ? hevcWasm && (options.engine === "mpegts" || options.engine === "mse")
+          ? "wasm"
+          : options.engine
+        : hevcWasm
+          ? "wasm"
+          : bestEngineForUrl(url);
+  const fallbacks: PlayerEngine[] = tv
+    ? url.includes(".m3u8")
+      ? ["native", "hls"]
+      : ["native", "mpegts"]
+    : preferred === "hls"
+      ? ["hls", "native"]
+      : preferred === "wasm"
+        ? ["wasm"]
+        : preferred === "mpegts" || preferred === "mse"
+          ? hevcWasm
+            ? ["wasm"]
+            : ["mpegts", "mse"]
+          : preferred === "native"
+            ? ["native", "hls"]
+            : [preferred, bestEngineForUrl(url)];
 
   let destroyed = false;
   const state: {
@@ -718,8 +777,7 @@ export async function attachStream(
     state.hls = null;
     dropCanvas();
     try {
-      video.pause();
-      video.removeAttribute("src");
+      clearMedia(video);
     } catch {
       /* ignore */
     }
@@ -727,7 +785,7 @@ export async function attachStream(
 
   const tryEngine = async (engine: PlayerEngine) => {
     if (engine === "wasm") {
-      if (!isMpegTsUrl(url)) return false;
+      if (tv || !isMpegTsUrl(url)) return false;
       state.wasm = await attachWasmHevc(video, playUrl, options.container, options.onPlaying, options.lowQuality);
       used = "wasm";
       return Boolean(state.wasm);
@@ -760,10 +818,15 @@ export async function attachStream(
       return Boolean(state.mpeg);
     }
     if (engine === "native") {
-      video.src = url.includes(".m3u8") ? url : playUrl;
-      video.play().catch(() => {});
+      const mime = nativeMime(url);
+      const primary = url.includes(".m3u8") ? url : playUrl;
+      let ok = await attachNative(video, primary, mime);
+      if (!ok && primary !== url) {
+        ok = await attachNative(video, url, mime);
+      }
       used = "native";
-      return true;
+      if (tv && isMpegTsUrl(url)) return true;
+      return ok;
     }
     return false;
   };
@@ -779,7 +842,7 @@ export async function attachStream(
         attached = false;
       }
     }
-    if (!attached && url.includes(".m3u8")) {
+    if (!attached && url.includes(".m3u8") && !tv) {
       state.hls = await attachHls(video, url, options.lowQuality, options.onQualities);
       used = "hls";
     }
@@ -887,6 +950,10 @@ export async function attachStream(
 
   const recoverLive = () => {
     if (destroyed || options.lowQuality || !followLive) return;
+    if (tv) {
+      video.play().catch(() => {});
+      return;
+    }
     try {
       if (state.wasm) {
         state.wasm.recover?.();
@@ -914,7 +981,7 @@ export async function attachStream(
     }
   };
 
-  if (!options.lowQuality) {
+  if (!options.lowQuality && !tv) {
     let lastBeat = Date.now();
     let cooling = false;
     const beat = () => {

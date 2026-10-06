@@ -24,6 +24,7 @@ import {
 } from "@/lib/attachStream";
 import { captureFromVideo } from "@/lib/captureThumbnails";
 import { ChannelLogo } from "./ChannelLogo";
+import { isSmartTvBrowser, prepareTvVideo } from "@/lib/tvBrowser";
 
 interface MainHeroPlayerProps {
   channel: Channel;
@@ -81,7 +82,7 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
 
         video.volume = volume;
         video.muted = false;
-        video.playsInline = true;
+        prepareTvVideo(video);
 
         try {
           streamHandleRef.current?.destroy();
@@ -206,7 +207,7 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
 
   useEffect(() => {
     const video = getVideo();
-    if (!video || !onThumb) return;
+    if (!video || !onThumb || isSmartTvBrowser()) return;
     let done = false;
     const tick = () => {
       if (done) return;
@@ -228,6 +229,7 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
   // for 15 consecutive seconds after first picture, trigger a full stream reload.
   // Poll-based is safer than events — 'waiting'/'emptied' fire during normal buffering.
   useEffect(() => {
+    if (isSmartTvBrowser()) return;
     let stuckMs = 0;
     const POLL_MS = 5000;
     const MAX_STUCK_MS = 15000;
@@ -386,10 +388,10 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
       onPointerLeave={onPlayerPointerLeave}
       className={
         isMini
-          ? "fixed bottom-4 right-4 z-50 w-[280px] overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl outline-none md:w-[320px]"
+          ? "tv-player-stage fixed bottom-4 right-4 z-50 w-[280px] overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl outline-none md:w-[320px]"
           : isFullscreen
-            ? `relative h-full w-full overflow-hidden bg-black outline-none ${showChrome ? "" : "cursor-none"}`
-            : "relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black outline-none"
+            ? `tv-player-stage relative h-full w-full bg-black outline-none ${showChrome ? "" : "cursor-none"}`
+            : "tv-player-stage relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black outline-none"
       }
     >
       <div className={isFullscreen ? "relative h-full w-full" : "relative aspect-video w-full"}>
@@ -397,6 +399,8 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
           ref={videoRef}
           playsInline
           autoPlay
+          preload="auto"
+          controls={false}
           className="h-full w-full cursor-pointer bg-black object-contain"
           onPlaying={() => setIsLoading(false)}
           onLoadedData={() => setIsLoading(false)}
