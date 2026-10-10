@@ -251,7 +251,9 @@ function waitForMedia(video: HTMLVideoElement, ms: number): Promise<boolean> {
 async function attachNative(video: HTMLVideoElement, src: string, mime: string): Promise<boolean> {
   prepareTvVideo(video);
   clearMedia(video);
-  if (mime) {
+  const tv = isSmartTvBrowser();
+  const typeOk = Boolean(mime) && !tv && video.canPlayType(mime) !== "";
+  if (typeOk) {
     const source = document.createElement("source");
     source.src = src;
     source.type = mime;
@@ -265,7 +267,7 @@ async function attachNative(video: HTMLVideoElement, src: string, mime: string):
     /* Tizen needs load(); desktop mpegts path avoids it */
   }
   video.play().catch(() => {});
-  return waitForMedia(video, isSmartTvBrowser() ? 8000 : 2500);
+  return waitForMedia(video, tv ? 8000 : 2500);
 }
 
 function emptyHandle(engine: PlayerEngine, destroy: () => void = () => {}): StreamHandle {
@@ -715,7 +717,7 @@ export async function attachStream(
   const fallbacks: PlayerEngine[] = tv
     ? url.includes(".m3u8")
       ? ["native", "hls"]
-      : ["native", "mpegts"]
+      : ["native"]
     : preferred === "hls"
       ? ["hls", "native"]
       : preferred === "wasm"

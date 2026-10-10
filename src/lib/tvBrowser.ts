@@ -4,7 +4,9 @@ export function isSmartTvBrowser(): boolean {
   if (typeof window === "undefined") return false;
   if (cached !== null) return cached;
   const ua = `${navigator.userAgent} ${navigator.vendor || ""}`;
-  cached = /Tizen|SMART-TV|SmartTV|Smart[ \-]TV|Maple|Web0S|webOS|NetCast|HbbTV|VIDAA|BRAVIA/i.test(ua);
+  cached = /Tizen|SMART-TV|SmartTV|Smart[ \-]TV|Maple|Web0S|webOS|NetCast|HbbTV|VIDAA|BRAVIA|TV Safari|SamsungBrowser\/[\d.]+.*\bTV\b/i.test(
+    ua
+  );
   if (cached) markTvDocument();
   return cached;
 }

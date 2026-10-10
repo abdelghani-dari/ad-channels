@@ -28,7 +28,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(/Tizen|SMART-TV|SmartTV|Maple|Web0S|webOS|NetCast|HbbTV|VIDAA|BRAVIA/i.test(navigator.userAgent))document.documentElement.classList.add("tv-browser")}catch(e){}`,
+            __html: `try{if(/Tizen|SMART-TV|SmartTV|Maple|Web0S|webOS|NetCast|HbbTV|VIDAA|BRAVIA|TV Safari|SamsungBrowser\\/[\\d.]+.*\\bTV\\b/i.test(navigator.userAgent))document.documentElement.classList.add("tv-browser")}catch(e){}`,
           }}
         />
       </head>

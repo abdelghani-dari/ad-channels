@@ -49,9 +49,17 @@ async function resolveEasyBroadcast(channel: Channel): Promise<string> {
   return fullUrl;
 }
 
-export async function resolveStreamUrl(channel: Channel): Promise<string> {
+export async function resolveStreamUrl(
+  channel: Channel,
+  options: { fresh?: boolean } = {}
+): Promise<string> {
   if (channel.type === "Static" || !channel.baseUrl) {
     return channel.streamUrl;
+  }
+
+  if (options.fresh) {
+    resolvedUrlCache.delete(channel.id);
+    inflightByChannel.delete(channel.id);
   }
 
   const existing = inflightByChannel.get(channel.id);

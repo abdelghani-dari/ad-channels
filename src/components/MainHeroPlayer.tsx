@@ -56,6 +56,7 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
   const [qualities, setQualities] = useState<QualityOption[]>([{ id: -1, label: "Auto" }]);
   const [qualityId, setQualityId] = useState(-1);
   const [isMini, setIsMini] = useState(false);
+  const isTv = typeof window !== "undefined" && isSmartTvBrowser();
   const [showChrome, setShowChrome] = useState(true);
   const hideChromeTimerRef = useRef(0);
   const inBottomZoneRef = useRef(false);
@@ -379,6 +380,8 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
     });
   };
 
+  const overlayOnVideo = !isTv;
+
   return (
     <div ref={sentinelRef} className={isMini ? "aspect-video w-full" : "w-full"}>
     <div
@@ -387,21 +390,35 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
       onPointerMove={onPlayerPointerMove}
       onPointerLeave={onPlayerPointerLeave}
       className={
-        isMini
-          ? "tv-player-stage fixed bottom-4 right-4 z-50 w-[280px] overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl outline-none md:w-[320px]"
-          : isFullscreen
-            ? `tv-player-stage relative h-full w-full bg-black outline-none ${showChrome ? "" : "cursor-none"}`
-            : "tv-player-stage relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black outline-none"
+        isTv
+          ? "tv-player-stage relative w-full bg-transparent outline-none"
+          : isMini
+            ? "tv-player-stage fixed bottom-4 right-4 z-50 w-[280px] overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl outline-none md:w-[320px]"
+            : isFullscreen
+              ? `tv-player-stage relative h-full w-full bg-black outline-none ${showChrome ? "" : "cursor-none"}`
+              : "tv-player-stage relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black outline-none"
       }
     >
-      <div className={isFullscreen ? "relative h-full w-full" : "relative aspect-video w-full"}>
+      <div
+        className={
+          isTv
+            ? "tv-video-hole relative aspect-video w-full bg-transparent"
+            : isFullscreen
+              ? "relative h-full w-full"
+              : "relative aspect-video w-full"
+        }
+      >
         <video
           ref={videoRef}
           playsInline
           autoPlay
           preload="auto"
           controls={false}
-          className="h-full w-full cursor-pointer bg-black object-contain"
+          className={
+            isTv
+              ? "h-full w-full cursor-pointer bg-transparent"
+              : "h-full w-full cursor-pointer bg-black object-contain"
+          }
           onPlaying={() => setIsLoading(false)}
           onLoadedData={() => setIsLoading(false)}
           onClick={onVideoClick}
@@ -413,7 +430,7 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
           }}
         />
 
-        {isLoading && showChrome && (
+        {overlayOnVideo && isLoading && showChrome && (
           <div className="pointer-events-none absolute bottom-24 left-3 z-20 md:bottom-28">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/70 px-2.5 py-1 text-[11px] font-medium text-zinc-200 shadow-lg">
               <span className="h-3 w-3 rounded-full border-2 border-zinc-500 border-t-white animate-spin" />
@@ -422,7 +439,7 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
           </div>
         )}
 
-        {needsGesture && !hasError && (
+        {overlayOnVideo && needsGesture && !hasError && (
           <button
             onClick={enableSound}
             className="absolute inset-0 z-30 flex items-center justify-center bg-black/40"
@@ -434,22 +451,25 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
           </button>
         )}
 
-        <div
-          className={`pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between p-4 transition-opacity duration-300 ${
-            showChrome ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <div className="flex items-center gap-2.5">
-            {channel.id !== "2m" && <ChannelLogo channel={channel} size="md" />}
-            <div>
-              <h2 className="text-base font-semibold text-white md:text-lg">{channel.displayName}</h2>
-              <p className="text-xs text-zinc-300">{channel.currentShow}</p>
+        {overlayOnVideo ? (
+          <div
+            className={`pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between p-4 transition-opacity duration-300 ${
+              showChrome ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              {channel.id !== "2m" && <ChannelLogo channel={channel} size="md" />}
+              <div>
+                <h2 className="text-base font-semibold text-white md:text-lg">{channel.displayName}</h2>
+                <p className="text-xs text-zinc-300">{channel.currentShow}</p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
 
-        {isFullscreen && !showChrome ? <div className="absolute inset-x-0 bottom-0 z-40 h-16" /> : null}
+        {overlayOnVideo && isFullscreen && !showChrome ? <div className="absolute inset-x-0 bottom-0 z-40 h-16" /> : null}
 
+        {overlayOnVideo ? (
         <div
           className={`absolute inset-x-0 bottom-0 z-40 bg-gradient-to-t from-black/85 to-transparent p-3 transition-opacity duration-300 md:p-4 ${
             showChrome ? "opacity-100" : "pointer-events-none opacity-0"
@@ -589,7 +609,38 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
             </div>
           </div>
         </div>
+        ) : null}
       </div>
+      {isTv ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 bg-zinc-950 p-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={togglePlay}
+              className="inline-flex items-center gap-1.5 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-900"
+            >
+              {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              {isPlaying ? "Pause" : "Play"}
+            </button>
+            {needsGesture ? (
+              <button
+                onClick={enableSound}
+                className="inline-flex items-center gap-1.5 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-900"
+              >
+                <Volume2 className="h-3.5 w-3.5" />
+                Sound
+              </button>
+            ) : null}
+            <span className="text-sm text-white">{channel.displayName}</span>
+          </div>
+          <button
+            onClick={reloadStream}
+            className="border border-zinc-700 bg-zinc-900 p-1.5 text-zinc-200"
+            title="Refresh stream"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
     </div>
     </div>
   );

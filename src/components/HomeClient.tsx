@@ -12,6 +12,7 @@ import { MultiviewModal } from "@/components/MultiviewModal";
 import { captureOneWithRetry, runThumbQueue, type CaptureResult } from "@/lib/captureThumbnails";
 import { loadBeinChannels, fetchBeinPlaylistRaw } from "@/lib/parseM3u";
 import { isSmartTvBrowser } from "@/lib/tvBrowser";
+import { resolveStreamUrl } from "@/lib/streamResolver";
 
 export function HomeClient() {
   const [playlist, setPlaylist] = useState<"maroc" | "bein">("maroc");
@@ -209,6 +210,27 @@ export function HomeClient() {
     if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const openChannelStreamTab = async (channel: Channel) => {
+    const tab = window.open("about:blank", "_blank");
+    try {
+      const url = await resolveStreamUrl(channel, { fresh: true });
+      if (tab) {
+        tab.opener = null;
+        tab.location.replace(url);
+      } else {
+        window.open(url, "_blank");
+      }
+    } catch {
+      const fallback = channel.streamUrl;
+      if (tab) {
+        tab.opener = null;
+        tab.location.replace(fallback);
+      } else {
+        window.open(fallback, "_blank");
+      }
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-black text-zinc-100">
       <Navbar
@@ -261,7 +283,7 @@ export function HomeClient() {
                 }}
                 channels={playlistChannels}
                 activeChannel={activeChannel}
-                onSelectChannel={handleSelectChannel}
+                onSelectChannel={openChannelStreamTab}
               />
             </div>
           </div>

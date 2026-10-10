@@ -37,11 +37,23 @@ html.tv-browser video,
 html.tv-browser canvas[data-hevc-player] {
   filter: none !important;
   transform: none !important;
+  background: transparent !important;
+  object-fit: fill !important;
 }
 
 html.tv-browser .tv-player-stage {
   overflow: visible !important;
   border-radius: 0 !important;
+  transform: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+html.tv-browser .tv-video-hole {
+  background: transparent !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
   transform: none !important;
 }
 
