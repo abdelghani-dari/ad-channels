@@ -40,6 +40,7 @@ export type StreamHandle = {
 };
 
 import { isSmartTvBrowser, nativeHlsSupported, prepareTvVideo } from "@/lib/tvBrowser";
+import { tvOrTabPlayUrl, viaHlsWrap } from "@/lib/playableUrl";
 
 const WASM_BASE = "/ferrite/";
 
@@ -715,9 +716,7 @@ export async function attachStream(
           ? "wasm"
           : bestEngineForUrl(url);
   const fallbacks: PlayerEngine[] = tv
-    ? url.includes(".m3u8")
-      ? ["native", "hls"]
-      : ["native"]
+    ? ["native", "hls"]
     : preferred === "hls"
       ? ["hls", "native"]
       : preferred === "wasm"
@@ -793,8 +792,9 @@ export async function attachStream(
       return Boolean(state.wasm);
     }
     if (engine === "hls" || engine === "vidstack" || engine === "dash" || engine === "plyr" || engine === "videojs" || engine === "artplayer") {
-      if (url.includes(".m3u8")) {
-        state.hls = await attachHls(video, url, options.lowQuality, options.onQualities);
+      if (url.includes(".m3u8") || (tv && isMpegTsUrl(url))) {
+        const hlsSrc = isMpegTsUrl(url) ? tvOrTabPlayUrl(url) : url;
+        state.hls = await attachHls(video, hlsSrc, options.lowQuality, options.onQualities);
         used = "hls";
         return true;
       }
@@ -820,6 +820,12 @@ export async function attachStream(
       return Boolean(state.mpeg);
     }
     if (engine === "native") {
+      if (tv && isMpegTsUrl(url)) {
+        let ok = await attachNative(video, tvOrTabPlayUrl(url), "");
+        if (!ok) ok = await attachNative(video, viaHlsWrap(url), "");
+        used = "native";
+        return true;
+      }
       const mime = nativeMime(url);
       const primary = url.includes(".m3u8") ? url : playUrl;
       let ok = await attachNative(video, primary, mime);
@@ -827,7 +833,6 @@ export async function attachStream(
         ok = await attachNative(video, url, mime);
       }
       used = "native";
-      if (tv && isMpegTsUrl(url)) return true;
       return ok;
     }
     return false;

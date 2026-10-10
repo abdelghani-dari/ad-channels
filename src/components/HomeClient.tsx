@@ -13,6 +13,7 @@ import { captureOneWithRetry, runThumbQueue, type CaptureResult } from "@/lib/ca
 import { loadBeinChannels, fetchBeinPlaylistRaw } from "@/lib/parseM3u";
 import { isSmartTvBrowser } from "@/lib/tvBrowser";
 import { resolveStreamUrl } from "@/lib/streamResolver";
+import { tvOrTabPlayUrl } from "@/lib/playableUrl";
 
 export function HomeClient() {
   const [playlist, setPlaylist] = useState<"maroc" | "bein">("maroc");
@@ -213,7 +214,8 @@ export function HomeClient() {
   const openChannelStreamTab = async (channel: Channel) => {
     const tab = window.open("about:blank", "_blank");
     try {
-      const url = await resolveStreamUrl(channel, { fresh: true });
+      const raw = await resolveStreamUrl(channel, { fresh: true });
+      const url = tvOrTabPlayUrl(raw);
       if (tab) {
         tab.opener = null;
         tab.location.replace(url);
@@ -221,7 +223,7 @@ export function HomeClient() {
         window.open(url, "_blank");
       }
     } catch {
-      const fallback = channel.streamUrl;
+      const fallback = tvOrTabPlayUrl(channel.streamUrl);
       if (tab) {
         tab.opener = null;
         tab.location.replace(fallback);
