@@ -3,6 +3,7 @@
 import React from "react";
 import { Channel } from "@/data/channels";
 import { ChannelLogo } from "./ChannelLogo";
+import { SourceBadge } from "./SourceBadge";
 
 type PlaylistId = "maroc" | "bein";
 
@@ -70,7 +71,10 @@ export function RecommendedStreamers({
             >
               <ChannelLogo channel={ch} size="sm" plain />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-zinc-100">{ch.displayName}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="truncate text-xs font-semibold text-zinc-100">{ch.displayName}</p>
+                  <SourceBadge channel={ch} />
+                </div>
                 <p className="truncate text-[11px] text-zinc-400">{ch.currentShow}</p>
               </div>
             </button>

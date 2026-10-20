@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Bug, Check, Copy, ImageOff, RefreshCw, Volume2, VolumeX } from "lucide-react";
 import { Channel } from "@/data/channels";
 import { ChannelLogo } from "./ChannelLogo";
+import { SourceBadge } from "./SourceBadge";
 import { StreamThumb } from "./StreamThumb";
 import { resolveStreamUrl } from "@/lib/streamResolver";
 import { attachStream, type StreamHandle } from "@/lib/attachStream";
@@ -235,7 +236,10 @@ export function StreamCard({
       <div className="flex items-start gap-2.5 p-3">
         <ChannelLogo channel={channel} size="sm" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-zinc-100">{channel.displayName}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-sm font-semibold text-zinc-100">{channel.displayName}</p>
+            <SourceBadge channel={channel} />
+          </div>
           <p className="truncate text-xs text-zinc-400">{channel.currentShow}</p>
           <p className="mt-1 text-[11px] text-zinc-500">{channel.category}</p>
         </div>

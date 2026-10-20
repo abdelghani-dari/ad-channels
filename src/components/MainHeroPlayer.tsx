@@ -14,6 +14,7 @@ import {
   Settings2,
 } from "lucide-react";
 import { Channel } from "@/data/channels";
+import { SourceBadge } from "./SourceBadge";
 import { resolveStreamUrl } from "@/lib/streamResolver";
 import {
   attachStream,
@@ -460,7 +461,10 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
             <div className="flex items-center gap-2.5">
               {channel.id !== "2m" && <ChannelLogo channel={channel} size="md" />}
               <div>
-                <h2 className="text-base font-semibold text-white md:text-lg">{channel.displayName}</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-white md:text-lg">{channel.displayName}</h2>
+                  <SourceBadge channel={channel} />
+                </div>
                 <p className="text-xs text-zinc-300">{channel.currentShow}</p>
               </div>
             </div>
@@ -631,6 +635,7 @@ export function MainHeroPlayer({ channel, onOpenMultiview, onThumb }: MainHeroPl
               </button>
             ) : null}
             <span className="text-sm text-white">{channel.displayName}</span>
+            <SourceBadge channel={channel} />
           </div>
           <button
             onClick={reloadStream}

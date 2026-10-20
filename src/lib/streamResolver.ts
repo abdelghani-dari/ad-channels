@@ -49,10 +49,33 @@ async function resolveEasyBroadcast(channel: Channel): Promise<string> {
   return fullUrl;
 }
 
+async function resolveAflamSource(channel: Channel, fresh: boolean): Promise<string> {
+  if (!channel.aflamVid) return channel.streamUrl;
+  if (fresh) resolvedUrlCache.delete(channel.id);
+  const cached = resolvedUrlCache.get(channel.id);
+  if (cached && cached.expiresAt > Date.now() + 5000) return cached.url;
+  try {
+    const res = await fetch(`/api/aflam-source?vid=${channel.aflamVid}`, { cache: "no-store" });
+    if (res.ok) {
+      const data = (await res.json()) as { url?: string };
+      if (data.url?.startsWith("http")) {
+        resolvedUrlCache.set(channel.id, { url: data.url, expiresAt: Date.now() + 60000 });
+        return data.url;
+      }
+    }
+  } catch {
+    /* fallback */
+  }
+  return channel.streamUrl;
+}
+
 export async function resolveStreamUrl(
   channel: Channel,
   options: { fresh?: boolean } = {}
 ): Promise<string> {
+  if (channel.source === "aflam4you") {
+    return resolveAflamSource(channel, Boolean(options.fresh));
+  }
   if (channel.type === "Static" || !channel.baseUrl) {
     return channel.streamUrl;
   }

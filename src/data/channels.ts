@@ -26,6 +26,8 @@ export interface Channel {
   tags: string[];
   quality: string;
   isPopular?: boolean;
+  source?: "aflam4you";
+  aflamVid?: number;
   sourceRaw?: {
     playlist?: string;
     extinf?: string;

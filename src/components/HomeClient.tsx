@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 import { CHANNELS, Channel } from "@/data/channels";
+import { AFLAM_BEIN, AFLAM_MAROC } from "@/data/aflam4you";
 import { Navbar } from "@/components/Navbar";
 import { Sidebar } from "@/components/Sidebar";
 import { MainHeroPlayer } from "@/components/MainHeroPlayer";
@@ -31,7 +32,7 @@ export function HomeClient() {
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [stillVersion, setStillVersion] = useState(0);
 
-  const playlistChannels = playlist === "maroc" ? CHANNELS : beinChannels;
+  const playlistChannels = playlist === "maroc" ? [...CHANNELS, ...AFLAM_MAROC] : [...AFLAM_BEIN, ...beinChannels];
   const queueAbortRef = useRef<AbortController | null>(null);
   const queueBusyRef = useRef(false);
   const beinRawRef = useRef<{ path: string; ok: boolean; text: string }[]>([]);
@@ -110,19 +111,22 @@ export function HomeClient() {
 
   useEffect(() => {
     if (playlist !== "maroc") return;
-    if (!CHANNELS.some((ch) => ch.id === activeChannel.id)) {
+    const list = [...CHANNELS, ...AFLAM_MAROC];
+    if (!list.some((ch) => ch.id === activeChannel.id)) {
       setActiveChannel(CHANNELS[0]);
     }
-    refreshAllLikeClicks(CHANNELS);
+    refreshAllLikeClicks(list);
     return () => queueAbortRef.current?.abort();
   }, [playlist]);
 
   useEffect(() => {
-    if (playlist !== "bein" || beinChannels.length === 0) return;
-    if (!beinChannels.some((ch) => ch.id === activeChannel.id)) {
-      setActiveChannel(beinChannels[0]);
+    if (playlist !== "bein") return;
+    const list = [...AFLAM_BEIN, ...beinChannels];
+    if (list.length === 0) return;
+    if (!list.some((ch) => ch.id === activeChannel.id)) {
+      setActiveChannel(list[0]);
     }
-    refreshAllLikeClicks(beinChannels);
+    refreshAllLikeClicks(list);
     return () => queueAbortRef.current?.abort();
   }, [playlist, beinChannels.length]);
 
@@ -132,7 +136,7 @@ export function HomeClient() {
     const timer = window.setInterval(() => {
       if (document.visibilityState === "hidden") return;
       if (queueBusyRef.current) return;
-      const list = playlist === "maroc" ? CHANNELS : beinChannels;
+      const list = playlist === "maroc" ? [...CHANNELS, ...AFLAM_MAROC] : [...AFLAM_BEIN, ...beinChannels];
       if (playlist === "bein") return;
       if (list.length === 0) return;
       refreshAllLikeClicks(list);
